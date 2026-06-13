@@ -414,152 +414,19 @@ body { background: var(--void); color: var(--white); font-family: "Inter", sans-
 </div>
 
 <script>
-// LIGHTBOX
-function openLb(src) {
-  document.getElementById('lbImg').src = src;
-  document.getElementById('lightbox').classList.add('open');
-}
-document.getElementById('lbClose').onclick = () => document.getElementById('lightbox').classList.remove('open');
-document.getElementById('lightbox').onclick = e => { if (e.target===e.currentTarget) document.getElementById('lightbox').classList.remove('open'); };
-
-// CURSOR
-const cursor=document.getElementById('cursor'), ring=document.getElementById('cursor-ring');
-document.addEventListener('mousemove',e=>{
-  cursor.style.left=e.clientX+'px'; cursor.style.top=e.clientY+'px';
-  setTimeout(()=>{ ring.style.left=e.clientX+'px'; ring.style.top=e.clientY+'px'; },80);
-});
-document.querySelectorAll('a,button,.skill-chip,.project-card,.award-card').forEach(el=>{
-  el.addEventListener('mouseenter',()=>{ cursor.style.width='20px'; cursor.style.height='20px'; ring.style.width='60px'; ring.style.height='60px'; });
-  el.addEventListener('mouseleave',()=>{ cursor.style.width='12px'; cursor.style.height='12px'; ring.style.width='36px'; ring.style.height='36px'; });
-});
-
-// THREE.JS
-(function(){
-  const container=document.getElementById('canvas-container');
-  const scene=new THREE.Scene();
-  const camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,1000);
-  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
-  renderer.setSize(innerWidth,innerHeight);
-  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-  renderer.setClearColor(0x050510,1);
-  container.appendChild(renderer.domElement);
-
-  const tGeo=new THREE.PlaneGeometry(200,200,100,100);
-  const tPos=tGeo.attributes.position;
-  for(let i=0;i<tPos.count;i++){
-    const x=tPos.getX(i),y=tPos.getY(i);
-    tPos.setZ(i,Math.sin(x*.06)*4+Math.sin(y*.08)*3+Math.sin(x*.14+y*.07)*2.5+(Math.random()-.5)*.8);
-  }
-  tGeo.computeVertexNormals();
-  const terrain=new THREE.Mesh(tGeo,new THREE.MeshStandardMaterial({color:0x0a0a25,metalness:.3,roughness:.85}));
-  terrain.rotation.x=-Math.PI/2; terrain.position.y=-18; scene.add(terrain);
-  const wire=new THREE.Mesh(tGeo,new THREE.MeshBasicMaterial({color:0x00ffd1,wireframe:true,transparent:true,opacity:.06}));
-  wire.rotation.x=-Math.PI/2; wire.position.y=-17.9; scene.add(wire);
-
-  scene.fog=new THREE.FogExp2(0x050510,.018);
-
-  const sArr=new Float32Array(9000);
-  for(let i=0;i<9000;i++) sArr[i]=(Math.random()-.5)*300;
-  const sGeo=new THREE.BufferGeometry();
-  sGeo.setAttribute('position',new THREE.BufferAttribute(sArr,3));
-  const stars=new THREE.Points(sGeo,new THREE.PointsMaterial({color:0xffffff,size:.25,transparent:true,opacity:.8}));
-  scene.add(stars);
-
-  const oc=[0x00ffd1,0x7b2fbe,0xff6b9d,0xffd166,0x4facfe];
-  const orbs=[];
-  for(let i=0;i<28;i++){
-    const m=new THREE.Mesh(new THREE.SphereGeometry(.2+Math.random()*.28,12,12),new THREE.MeshStandardMaterial({color:oc[i%5],emissive:oc[i%5],emissiveIntensity:.8,metalness:.6,roughness:.1}));
-    m.position.set((Math.random()-.5)*80,(Math.random()-.5)*30,(Math.random()-.5)*80);
-    orbs.push({m,s:.3+Math.random()*.8,o:Math.random()*Math.PI*2}); scene.add(m);
-  }
-
-  const hGeo=new THREE.SphereGeometry(.12,8,8);
-  for(let i=0;i<60;i++){
-    const t2=(i/60)*Math.PI*6;
-    const a=new THREE.Mesh(hGeo,new THREE.MeshStandardMaterial({color:0x00ffd1,emissive:0x00ffd1,emissiveIntensity:.7}));
-    const b=new THREE.Mesh(hGeo,new THREE.MeshStandardMaterial({color:0x7b2fbe,emissive:0x7b2fbe,emissiveIntensity:.7}));
-    a.position.set(Math.cos(t2)*2.5,i*.4-12,Math.sin(t2)*2.5-30);
-    b.position.set(Math.cos(t2+Math.PI)*2.5,i*.4-12,Math.sin(t2+Math.PI)*2.5-30);
-    scene.add(a); scene.add(b);
-  }
-
-  const pP=new Float32Array(4500),pC=new Float32Array(4500);
-  for(let i=0;i<1500;i++){
-    pP[i*3]=(Math.random()-.5)*150; pP[i*3+1]=(Math.random()-.5)*80; pP[i*3+2]=(Math.random()-.5)*150;
-    const c=new THREE.Color(oc[Math.floor(Math.random()*5)]);
-    pC[i*3]=c.r; pC[i*3+1]=c.g; pC[i*3+2]=c.b;
-  }
-  const pGeo=new THREE.BufferGeometry();
-  pGeo.setAttribute('position',new THREE.BufferAttribute(pP,3));
-  pGeo.setAttribute('color',new THREE.BufferAttribute(pC,3));
-  const particles=new THREE.Points(pGeo,new THREE.PointsMaterial({size:.18,vertexColors:true,transparent:true,opacity:.6}));
-  scene.add(particles);
-
-  scene.add(new THREE.AmbientLight(0x1a1a3e,1.5));
-  const cL=new THREE.PointLight(0x00ffd1,3,60); cL.position.set(0,20,0); scene.add(cL);
-  const vL=new THREE.PointLight(0x7b2fbe,3,60); vL.position.set(-30,15,-20); scene.add(vL);
-
-  camera.position.set(0,8,40); camera.lookAt(0,0,0);
-  let tcx=0,tcy=8,scroll=0;
-  document.addEventListener('mousemove',e=>{ tcx=(e.clientX/innerWidth-.5)*12; tcy=8+(e.clientY/innerHeight-.5)*-4; });
-  window.addEventListener('scroll',()=>{ scroll=window.scrollY/(document.body.scrollHeight-innerHeight)||0; });
-
-  let t=0;
-  (function animate(){
-    requestAnimationFrame(animate); t+=.008;
-    camera.position.x+=(tcx-camera.position.x)*.03;
-    camera.position.y+=(tcy-camera.position.y)*.03;
-    camera.position.z+=(40-scroll*80-camera.position.z)*.04;
-    camera.lookAt(0,scroll*-5,camera.position.z-30);
-    orbs.forEach(o=>{ o.m.position.y+=Math.sin(t*o.s+o.o)*.015; o.m.rotation.x+=.008; o.m.rotation.y+=.005; });
-    particles.rotation.y=t*.04; particles.rotation.x=t*.015;
-    stars.rotation.y=t*.02;
-    const tp=terrain.geometry.attributes.position;
-    for(let i=0;i<tp.count;i+=4){
-      const x=tp.getX(i),y=tp.getY(i);
-      tp.setZ(i,Math.sin(x*.06+t*.5)*4+Math.sin(y*.08+t*.3)*3+Math.sin(x*.14+y*.07+t*.4)*2.5);
-    }
-    tp.needsUpdate=true; terrain.geometry.computeVertexNormals();
-    cL.intensity=3+Math.sin(t*2); vL.intensity=3+Math.cos(t*1.5);
-    renderer.render(scene,camera);
-  })();
-  window.addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
-})();
-
-// NAV DOTS
-const sections=['hero','about','skills','projects','volunteering','awards','contact'];
-const labels=['Home','Profile','Skills','Research','Leadership','Awards','Contact'];
-const navDots=document.getElementById('navDots');
-sections.forEach((id,i)=>{
-  const w=document.createElement('div'); w.className='nav-dot-wrapper';
-  const d=document.createElement('button'); d.className='nav-dot'+(i===0?' active':'');
-  d.addEventListener('click',()=>document.getElementById(id).scrollIntoView({behavior:'smooth'}));
-  const l=document.createElement('span'); l.className='nav-dot-label'; l.textContent=labels[i];
-  d.appendChild(l); w.appendChild(d); navDots.appendChild(w);
-});
-new IntersectionObserver(es=>es.forEach(e=>{
-  if(e.isIntersecting){ const idx=sections.indexOf(e.target.id); document.querySelectorAll('.nav-dot').forEach((d,i)=>d.classList.toggle('active',i===idx)); }
-}),{threshold:.4}).observe && sections.forEach(id=>{ const el=document.getElementById(id); if(el) new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting){ const idx=sections.indexOf(e.target.id); document.querySelectorAll('.nav-dot').forEach((d,i)=>d.classList.toggle('active',i===idx)); }}),{threshold:.4}).observe(el); });
-
-// REVEAL
-new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('visible'); }),{threshold:.1,rootMargin:'0px 0px -60px 0px'}).observe && document.querySelectorAll('.reveal').forEach((el,i)=>{ el.style.transitionDelay=(i%4)*.1+'s'; new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('visible'); }),{threshold:.1,rootMargin:'0px 0px -60px 0px'}).observe(el); });
-<script>
-  // --- LIGHTBOX ENLARGEMENT FIX ---
+  // --- BULLETPROOF LIGHTBOX FIX ---
   const lightbox = document.getElementById('lightbox');
   const lbImg = document.getElementById('lbImg');
   const lbClose = document.getElementById('lbClose');
 
-  // 1. Open lightbox for Project Images
-  document.querySelectorAll('.project-img').forEach(img => {
-    img.addEventListener('click', function() {
-      lbImg.src = this.src;
-      lightbox.classList.add('open');
-    });
-  });
-
-  // 2. Open lightbox for Award Cards
+  // 1. Fix Award Cards (Automatically strips the broken code)
   document.querySelectorAll('.award-card').forEach(card => {
-    card.addEventListener('click', function() {
+    // This line deletes the broken 'onclick' attribute for you
+    card.removeAttribute('onclick'); 
+    
+    // Attaches the correct enlargement function
+    card.addEventListener('click', function(e) {
+      e.stopPropagation(); // Prevents other scripts from blocking the click
       const img = this.querySelector('.award-img');
       if (img) {
         lbImg.src = img.src;
@@ -568,18 +435,27 @@ new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting) e.target.class
     });
   });
 
-  // 3. Close lightbox when clicking the 'X'
+  // 2. Fix Project Images
+  document.querySelectorAll('.project-img').forEach(img => {
+    img.removeAttribute('onclick');
+    img.addEventListener('click', function(e) {
+      e.stopPropagation();
+      lbImg.src = this.src;
+      lightbox.classList.add('open');
+    });
+  });
+
+  // 3. Close Lightbox Controls
   lbClose.addEventListener('click', () => {
     lightbox.classList.remove('open');
   });
 
-  // 4. Close lightbox when clicking the dark background outside the image
   lightbox.addEventListener('click', (e) => {
+    // Only close if clicking the dark background, not the image itself
     if (e.target === lightbox) {
       lightbox.classList.remove('open');
     }
   });
-</script>
 </script>
 </body>
 </html>
